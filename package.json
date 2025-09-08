@@ -1,0 +1,10 @@
+{
+  "name": "sleep-coach-vercel",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1"
+  }
+}

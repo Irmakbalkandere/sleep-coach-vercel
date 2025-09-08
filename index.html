@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sleep Coach — UI</title>
+  <style>
+    :root { --bg:#0b0c10; --card:#121318; --text:#e9eef5; --muted:#9aa3ad; --line:#1e2230; --brand:#6aa4ff; }
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Arial;
+           margin: 0; padding: 24px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; font-size: 26px; }
+    .muted { color: var(--muted); margin: 0 0 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 6px; }
+    input, select, textarea {
+      width: 100%; background: #0f1117; border: 1px solid #22283a; color: var(--text);
+      padding: 10px 12px; border-radius: 10px; outline: none;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 900px){ .row { grid-template-columns: 1fr; } }
+    button {
+      background: var(--brand); color: #04121f; border: 0; padding: 10px 14px; font-weight: 600;
+      border-radius: 10px; cursor: pointer;
+    }
+    .danger { background: #ff6a6a; color: #200; }
+    .list .item { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 10px 0; }
+    .hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .pill { background: #101522; color: var(--muted); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid #1f2640; }
+    details summary { cursor: pointer; color: var(--muted); margin: 8px 0 12px; }
+    code { background:#0e1220; padding:2px 6px; border:1px solid #1c2339; border-radius:6px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>😴 Sleep Coach — UI</h1>
+  <p class="muted">Kayıt ekle → listele/sil → haftalık özet. Token opsiyonel (prod/dev güvenliği için).</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="hdr">
+        <h3 style="margin:0">Kayıt Ekle</h3>
+        <span class="pill" id="envPill">env: —</span>
+      </div>
+
+      <label>User ID</label>
+      <input id="userId" value="canim" />
+
+      <div class="row">
+        <div>
+          <label>Başlangıç (tarih-saat)</label>
+          <input id="startLocal" type="datetime-local" />
+        </div>
+        <div>
+          <label>Bitiş (tarih-saat)</label>
+          <input id="endLocal" type="datetime-local" />
+        </div>
+        <div>
+          <label>Zaman Dilimi</label>
+          <select id="tz">
+            <!-- value = offsetMinutes | label = TZ (şehirler) -->
+            <option value="180">UTC+03 — Europe/Istanbul (İstanbul, Ankara)</option>
+            <option value="120">UTC+02 — Europe/Athens (Atina, Sofya)</option>
+            <option value="60">UTC+01 — Europe/Berlin (Berlin, Paris, Roma)</option>
+            <option value="0">UTC±00 — Europe/London (Londra, Dublin)</option>
+            <option value="-240">UTC-04 — America/New_York (New York, Toronto)*</option>
+            <option value="-300">UTC-05 — America/Chicago (Chicago, Mexico City)*</option>
+            <option value="330">UTC+05:30 — Asia/Kolkata (Delhi, Mumbai)</option>
+            <option value="540">UTC+09 — Asia/Tokyo (Tokyo, Osaka)</option>
+          </select>
+          <div class="muted" style="font-size:12px;margin-top:6px">*DST değişimi basitleştirilmiştir.</div>
+        </div>
+      </div>
+
+      <label>Not</label>
+      <textarea id="note" placeholder="ör: kahve içtim, geç uyudum"></textarea>
+
+      <details>
+        <summary>Gelişmiş (API Token & Base URL)</summary>
+        <label>API Base URL (<code>http(s)://…</code>)</label>
+        <input id="baseUrl" placeholder="boş = bu site" />
+        <label>API Token (<code>X-Api-Token</code>)</label>
+        <input id="token" placeholder="prod/dev token" />
+        <div class="muted" style="font-size:12px;margin-top:6px">
+          Not: Token yalnızca <code>POST</code> ve <code>DELETE</code> çağrılarında header olarak gönderilir.
+        </div>
+      </details>
+
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button id="btnCreate">Ekle</button>
+        <button id="btnSave" style="background:#96d38e">Ayarları Kaydet</button>
+        <button id="btnClear" class="danger">Formu Temizle</button>
+      </div>
+      <div id="createMsg" class="muted" style="margin-top:8px">—</div>
+    </div>
+
+    <div class="card">
+      <div class="hdr">
+        <h3 style="margin:0">Haftalık Özet</h3>
+        <button id="btnWeekly">Yenile</button>
+      </div>
+      <div id="weeklyBox" class="muted">—</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="hdr">
+      <h3 style="margin:0">Kayıtlar</h3>
+      <button id="btnList">Yenile</button>
+    </div>
+    <div id="list" class="list muted">—</div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const LS = {
+  set(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
+  get(k, def=null){ try{ return JSON.parse(localStorage.getItem(k)) ?? def }catch{ return def } }
+};
+
+function isoFromLocalAndOffset(localStr, offsetMinutes){
+  // localStr: "2025-09-01T23:30"
+  if(!localStr) return null;
+  const [datePart, timePart] = localStr.split('T'); // "YYYY-MM-DD", "HH:mm"
+  const [Y,m,d] = datePart.split('-').map(Number);
+  const [H,Mi]  = timePart.split(':').map(Number);
+  // "naive" tarih üret → sonra seçilen timezone offset'ini çıkar → UTC yap
+  const naive = new Date(Date.UTC(Y, m-1, d, H, Mi, 0)); // UTC kabul edip oluşturuyoruz
+  // seçilen TZ offset dakikasını çıkarınca UTC'ye normalize ederiz
+  const utcMs = naive.getTime() - (offsetMinutes * 60 * 1000);
+  return new Date(utcMs).toISOString(); // → "...Z"
+}
+
+function base(){
+  const v = $("baseUrl").value.trim();
+  return v || location.origin;
+}
+
+function showEnv(){
+  const pill = $("envPill");
+  const b = base();
+  pill.textContent = (b === location.origin) ? "env: this origin" : ("env: custom");
+}
+
+function uiMsg(id, text){ $(id).textContent = text; }
+
+function rowHtml(r){
+  return `
+    <div class="item">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <div style="font-weight:600">ID: ${r.id}</div>
+        <button class="danger" onclick="delRow('${r.id}')">Sil</button>
+      </div>
+      <div class="muted" style="margin-top:6px">Start: ${r.start_at} | End: ${r.end_at} | Minutes: ${r.minutes}</div>
+      <div>${r.note ? r.note : ""}</div>
+    </div>
+  `;
+}
+
+async function create(){
+  const userId = $("userId").value.trim();
+  const startLocal = $("startLocal").value.trim();
+  const endLocal   = $("endLocal").value.trim();
+  const note       = $("note").value.trim();
+  const tzOffset   = parseInt($("tz").value, 10);
+
+  if(!userId || !startLocal || !endLocal){
+    uiMsg("createMsg", "❌ userId / tarih-saat zorunlu");
+    return;
+  }
+
+  const startISO = isoFromLocalAndOffset(startLocal, tzOffset);
+  const endISO   = isoFromLocalAndOffset(endLocal, tzOffset);
+
+  const headers = { "Content-Type": "application/json" };
+  const token = $("token").value.trim();
+  if(token) headers["X-Api-Token"] = token;
+
+  uiMsg("createMsg", "Gönderiliyor...");
+  try{
+    const r = await fetch(`${base()}/api/sessions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ userId, start: startISO, end: endISO, note })
+    });
+    const t = await r.text();
+    uiMsg("createMsg", r.ok ? "✔️ Eklendi: " + t : "❌ Hata: " + t);
+    if(r.ok){ list(); weekly(); }
+  }catch(e){
+    uiMsg("createMsg", "❌ Ağ hatası: " + e.message);
+  }
+}
+
+async function list(){
+  const userId = $("userId").value.trim();
+  const el = $("list");
+  el.textContent = "Yükleniyor...";
+  try{
+    const r = await fetch(`${base()}/api/sessions?userId=${encodeURIComponent(userId)}`);
+    const data = await r.json();
+    if(!Array.isArray(data) || data.length===0){
+      el.textContent = "Kayıt yok.";
+      return;
+    }
+    el.innerHTML = data.map(rowHtml).join("");
+  }catch(e){ el.textContent = "❌ Hata: " + e.message; }
+}
+
+async function delRow(id){
+  const userId = $("userId").value.trim();
+  const token  = $("token").value.trim();
+  if(!token){ alert("Silmek için Token gerekli."); return; }
+  try{
+    const r = await fetch(`${base()}/api/sessions/${id}?userId=${encodeURIComponent(userId)}`, {
+      method: "DELETE",
+      headers: { "X-Api-Token": token }
+    });
+    if(r.status === 204){ list(); weekly(); }
+    else { alert("Silme hatası: " + await r.text()); }
+  }catch(e){ alert("İstek hatası: " + e.message); }
+}
+
+async function weekly(){
+  const userId = $("userId").value.trim();
+  const box = $("weeklyBox");
+  box.textContent = "Yükleniyor...";
+  try{
+    const r = await fetch(`${base()}/api/weekly?userId=${encodeURIComponent(userId)}`);
+    const d = await r.json();
+    box.textContent = `Gün: ${d.days} | Ortalama (dk): ${d.avgMinutes} | Skor: ${d.sleepScore}`;
+  }catch(e){ box.textContent = "❌ Hata: " + e.message; }
+}
+
+function saveSettings(){
+  LS.set("sc:base", $("baseUrl").value.trim());
+  LS.set("sc:token", $("token").value.trim());
+  LS.set("sc:tz", $("tz").value);
+  uiMsg("createMsg", "💾 Ayarlar kaydedildi.");
+  showEnv();
+}
+
+function loadSettings(){
+  const b = LS.get("sc:base", "");
+  const t = LS.get("sc:token", "");
+  const tz = LS.get("sc:tz", "180");
+  $("baseUrl").value = b;
+  $("token").value   = t;
+  $("tz").value      = tz;
+  // varsayılan: bugün için öğe doldur
+  const now = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  const loc = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  $("startLocal").value = loc(now);
+  $("endLocal").value   = loc(new Date(now.getTime()+7*60*60*1000)); // +7 saat
+  showEnv();
+}
+
+$("btnCreate").onclick = create;
+$("btnList").onclick   = list;
+$("btnWeekly").onclick = weekly;
+$("btnSave").onclick   = saveSettings;
+$("btnClear").onclick  = () => { $("note").value=""; };
+
+loadSettings();
+list(); weekly();
+</script>
+</body>
+</html>

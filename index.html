@@ -1,272 +1,218 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sleep Coach — UI</title>
+  <title>Sleep Coach — Mini UI</title>
   <style>
-    :root { --bg:#0b0c10; --card:#121318; --text:#e9eef5; --muted:#9aa3ad; --line:#1e2230; --brand:#6aa4ff; }
-    * { box-sizing: border-box; }
-    body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Arial;
-           margin: 0; padding: 24px; }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    h1 { margin: 0 0 6px; font-size: 26px; }
-    .muted { color: var(--muted); margin: 0 0 20px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
-    label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 6px; }
-    input, select, textarea {
-      width: 100%; background: #0f1117; border: 1px solid #22283a; color: var(--text);
-      padding: 10px 12px; border-radius: 10px; outline: none;
-    }
-    textarea { resize: vertical; min-height: 60px; }
-    .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    @media (max-width: 900px){ .row { grid-template-columns: 1fr; } }
-    button {
-      background: var(--brand); color: #04121f; border: 0; padding: 10px 14px; font-weight: 600;
-      border-radius: 10px; cursor: pointer;
-    }
-    .danger { background: #ff6a6a; color: #200; }
-    .list .item { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 10px 0; }
-    .hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    .pill { background: #101522; color: var(--muted); font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid #1f2640; }
-    details summary { cursor: pointer; color: var(--muted); margin: 8px 0 12px; }
-    code { background:#0e1220; padding:2px 6px; border:1px solid #1c2339; border-radius:6px; }
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 32px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; }
+    .muted { color: #666; margin: 0 0 24px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; }
+    button { padding: 10px 14px; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .right { text-align: right; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+    .hint { font-size: 12px; color: #888; margin-top: 4px; }
+    .pill { display:inline-block;padding:2px 8px;border:1px solid #e3e3e3;border-radius:16px;font-size:12px;color:#666 }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>😴 Sleep Coach — UI</h1>
-  <p class="muted">Kayıt ekle → listele/sil → haftalık özet. Token opsiyonel (prod/dev güvenliği için).</p>
+  <h1>😴 Sleep Coach</h1>
+  <p class="muted">Kayıt ekle, listele/sil; sağda haftalık özet. <span class="pill" id="tz-pill"></span></p>
 
-  <div class="grid">
-    <div class="card">
-      <div class="hdr">
-        <h3 style="margin:0">Kayıt Ekle</h3>
-        <span class="pill" id="envPill">env: —</span>
-      </div>
+  <div class="card">
+    <h3>Kayıt Ekle</h3>
 
-      <label>User ID</label>
-      <input id="userId" value="canim" />
+    <div class="row">
+      <div><label>User ID <input id="userId" value="canim" /></label></div>
 
-      <div class="row">
-        <div>
-          <label>Başlangıç (tarih-saat)</label>
-          <input id="startLocal" type="datetime-local" />
-        </div>
-        <div>
-          <label>Bitiş (tarih-saat)</label>
-          <input id="endLocal" type="datetime-local" />
-        </div>
-        <div>
-          <label>Zaman Dilimi</label>
+      <div><label>Tarih (Başlangıç) <input id="dateStart" type="date" /></label></div>
+      <div><label>Saat (Başlangıç) <input id="timeStart" type="time" /></label></div>
+
+      <div><label>Tarih (Bitiş) <input id="dateEnd" type="date" /></label></div>
+      <div><label>Saat (Bitiş) <input id="timeEnd" type="time" /></label></div>
+
+      <div>
+        <label>Saat Dilimi (Şehir)
           <select id="tz">
-            <!-- value = offsetMinutes | label = TZ (şehirler) -->
-            <option value="180">UTC+03 — Europe/Istanbul (İstanbul, Ankara)</option>
-            <option value="120">UTC+02 — Europe/Athens (Atina, Sofya)</option>
-            <option value="60">UTC+01 — Europe/Berlin (Berlin, Paris, Roma)</option>
-            <option value="0">UTC±00 — Europe/London (Londra, Dublin)</option>
-            <option value="-240">UTC-04 — America/New_York (New York, Toronto)*</option>
-            <option value="-300">UTC-05 — America/Chicago (Chicago, Mexico City)*</option>
-            <option value="330">UTC+05:30 — Asia/Kolkata (Delhi, Mumbai)</option>
-            <option value="540">UTC+09 — Asia/Tokyo (Tokyo, Osaka)</option>
+            <!-- Yaygın TZ + şehir örnekleri -->
+            <option value="Europe/Istanbul">Europe/Istanbul (TR)</option>
+            <option value="Europe/Berlin">Europe/Berlin (DE)</option>
+            <option value="Europe/London">Europe/London (UK)</option>
+            <option value="Asia/Dubai">Asia/Dubai (AE)</option>
+            <option value="Asia/Kolkata">Asia/Kolkata (IN)</option>
+            <option value="Asia/Tokyo">Asia/Tokyo (JP)</option>
+            <option value="America/New_York">America/New_York (US-ET)</option>
+            <option value="America/Chicago">America/Chicago (US-CT)</option>
+            <option value="America/Denver">America/Denver (US-MT)</option>
+            <option value="America/Los_Angeles">America/Los_Angeles (US-PT)</option>
           </select>
-          <div class="muted" style="font-size:12px;margin-top:6px">*DST değişimi basitleştirilmiştir.</div>
-        </div>
+        </label>
+        <div class="hint">Girilen yerel saat, otomatik UTC’ye çevrilip kaydedilecek.</div>
       </div>
+    </div>
 
-      <label>Not</label>
-      <textarea id="note" placeholder="ör: kahve içtim, geç uyudum"></textarea>
+    <label>Not <textarea id="note" rows="2" placeholder="ör: “prod UI deneme”"></textarea></label>
 
-      <details>
-        <summary>Gelişmiş (API Token & Base URL)</summary>
-        <label>API Base URL (<code>http(s)://…</code>)</label>
-        <input id="baseUrl" placeholder="boş = bu site" />
-        <label>API Token (<code>X-Api-Token</code>)</label>
-        <input id="token" placeholder="prod/dev token" />
-        <div class="muted" style="font-size:12px;margin-top:6px">
-          Not: Token yalnızca <code>POST</code> ve <code>DELETE</code> çağrılarında header olarak gönderilir.
-        </div>
-      </details>
-
-      <div style="display:flex; gap:8px; margin-top:12px;">
-        <button id="btnCreate">Ekle</button>
-        <button id="btnSave" style="background:#96d38e">Ayarları Kaydet</button>
-        <button id="btnClear" class="danger">Formu Temizle</button>
+    <div class="row">
+      <div>
+        <label>API Token
+          <input id="token" placeholder="X-Api-Token (yalnızca ekleme/silme için)">
+        </label>
+        <div class="hint">Tarayıcıda güvenli değil; sadece kendi cihazında uygula. Token sunucuda doğrulanır.</div>
       </div>
-      <div id="createMsg" class="muted" style="margin-top:8px">—</div>
+      <div class="right"><button id="btnSaveToken" type="button">Token’ı Kaydet</button></div>
+      <div class="right"><button onclick="create()">Ekle</button></div>
+      <div class="right"><button onclick="list()">Listeyi Yenile</button></div>
+      <div class="right"><button onclick="weekly()">Haftalık Yenile</button></div>
+    </div>
+
+    <div id="createMsg" class="muted"></div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>Liste</h3>
+      <div id="list"></div>
     </div>
 
     <div class="card">
-      <div class="hdr">
-        <h3 style="margin:0">Haftalık Özet</h3>
-        <button id="btnWeekly">Yenile</button>
-      </div>
+      <h3>Haftalık Özet</h3>
       <div id="weeklyBox" class="muted">—</div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:16px;">
-    <div class="hdr">
-      <h3 style="margin:0">Kayıtlar</h3>
-      <button id="btnList">Yenile</button>
-    </div>
-    <div id="list" class="list muted">—</div>
-  </div>
+  <p class="muted">API test: <code>/api/ping</code></p>
 </div>
 
 <script>
+const base = location.origin;
 const $ = (id) => document.getElementById(id);
-const LS = {
-  set(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
-  get(k, def=null){ try{ return JSON.parse(localStorage.getItem(k)) ?? def }catch{ return def } }
-};
 
-function isoFromLocalAndOffset(localStr, offsetMinutes){
-  // localStr: "2025-09-01T23:30"
-  if(!localStr) return null;
-  const [datePart, timePart] = localStr.split('T'); // "YYYY-MM-DD", "HH:mm"
-  const [Y,m,d] = datePart.split('-').map(Number);
-  const [H,Mi]  = timePart.split(':').map(Number);
-  // "naive" tarih üret → sonra seçilen timezone offset'ini çıkar → UTC yap
-  const naive = new Date(Date.UTC(Y, m-1, d, H, Mi, 0)); // UTC kabul edip oluşturuyoruz
-  // seçilen TZ offset dakikasını çıkarınca UTC'ye normalize ederiz
-  const utcMs = naive.getTime() - (offsetMinutes * 60 * 1000);
-  return new Date(utcMs).toISOString(); // → "...Z"
+// ----- Token (localStorage) -----
+const TOKEN_KEY = "sleepcoach_token";
+function loadToken() {
+  const t = localStorage.getItem(TOKEN_KEY) || "";
+  $("token").value = t;
+}
+$("btnSaveToken").addEventListener("click", () => {
+  localStorage.setItem(TOKEN_KEY, $("token").value.trim());
+  alert("Token kaydedildi (localStorage).");
+});
+loadToken();
+
+// ----- Saat Dilimi pill -----
+function setTzPill() {
+  const tz = $("tz").value;
+  $("tz-pill").textContent = `TZ: ${tz}`;
+}
+$("tz").addEventListener("change", setTzPill);
+setTzPill();
+
+// ----- Yerel tarih-saat → UTC ISO (TZ’li) -----
+function toUtcIso(dateStr, timeStr, tz) {
+  // dateStr: "2025-09-01", timeStr: "23:30"
+  if (!dateStr || !timeStr) return null;
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  const [h, m] = timeStr.split(":").map(Number);
+
+  // TZ aware: Intl API ile offset tespiti
+  const dt = new Date(Date.UTC(Y, M-1, D, h, m, 0)); // UTC taban
+  // dt’yi hedef TZ’ye “gibi” düşünerek offset düzeltmesi yapalım:
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  // TZ’deki “aynı duygusal anı” yakalamak için:
+  const parts = fmt.formatToParts(dt);
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  // TZ’de görünen anı tekrar Date’e çevir
+  const tzLike = new Date(`${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}:${map.second}Z`);
+  // Şimdi bu görünümü UTC’ye yeniden projekte et
+  // dönüş: ISO (UTC)
+  return tzLike.toISOString();
 }
 
-function base(){
-  const v = $("baseUrl").value.trim();
-  return v || location.origin;
-}
+// ----- UI Helpers -----
+function msg(el, text) { el.textContent = text; }
+function getToken() { return $("token").value.trim(); }
 
-function showEnv(){
-  const pill = $("envPill");
-  const b = base();
-  pill.textContent = (b === location.origin) ? "env: this origin" : ("env: custom");
-}
-
-function uiMsg(id, text){ $(id).textContent = text; }
-
-function rowHtml(r){
-  return `
-    <div class="item">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
-        <div style="font-weight:600">ID: ${r.id}</div>
-        <button class="danger" onclick="delRow('${r.id}')">Sil</button>
-      </div>
-      <div class="muted" style="margin-top:6px">Start: ${r.start_at} | End: ${r.end_at} | Minutes: ${r.minutes}</div>
-      <div>${r.note ? r.note : ""}</div>
-    </div>
-  `;
-}
-
-async function create(){
+// ----- Actions -----
+async function create() {
   const userId = $("userId").value.trim();
-  const startLocal = $("startLocal").value.trim();
-  const endLocal   = $("endLocal").value.trim();
-  const note       = $("note").value.trim();
-  const tzOffset   = parseInt($("tz").value, 10);
+  const startISO = toUtcIso($("dateStart").value, $("timeStart").value, $("tz").value);
+  const endISO   = toUtcIso($("dateEnd").value, $("timeEnd").value, $("tz").value);
+  const note     = $("note").value.trim();
+  const token    = getToken();
+  const box      = $("createMsg");
 
-  if(!userId || !startLocal || !endLocal){
-    uiMsg("createMsg", "❌ userId / tarih-saat zorunlu");
+  if (!userId || !startISO || !endISO) {
+    msg(box, "❌ userId / tarih-saat eksik");
     return;
   }
+  msg(box, "Gönderiliyor...");
 
-  const startISO = isoFromLocalAndOffset(startLocal, tzOffset);
-  const endISO   = isoFromLocalAndOffset(endLocal, tzOffset);
-
-  const headers = { "Content-Type": "application/json" };
-  const token = $("token").value.trim();
-  if(token) headers["X-Api-Token"] = token;
-
-  uiMsg("createMsg", "Gönderiliyor...");
-  try{
-    const r = await fetch(`${base()}/api/sessions`, {
-      method: "POST",
-      headers,
+  try {
+    const r = await fetch(`${base}/api/sessions`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json','X-Api-Token': token},
       body: JSON.stringify({ userId, start: startISO, end: endISO, note })
     });
     const t = await r.text();
-    uiMsg("createMsg", r.ok ? "✔️ Eklendi: " + t : "❌ Hata: " + t);
-    if(r.ok){ list(); weekly(); }
-  }catch(e){
-    uiMsg("createMsg", "❌ Ağ hatası: " + e.message);
-  }
+    msg(box, r.ok ? '✔️ Eklendi: ' + t : '❌ Hata: ' + t);
+    if (r.ok) { list(); weekly(); }
+  } catch (e) { msg(box, '❌ İstek hatası: ' + e.message); }
 }
 
-async function list(){
+async function list() {
   const userId = $("userId").value.trim();
   const el = $("list");
-  el.textContent = "Yükleniyor...";
-  try{
-    const r = await fetch(`${base()}/api/sessions?userId=${encodeURIComponent(userId)}`);
+  msg(el, "Yükleniyor...");
+  try {
+    const r = await fetch(`${base}/api/sessions?userId=${encodeURIComponent(userId)}`);
     const data = await r.json();
-    if(!Array.isArray(data) || data.length===0){
-      el.textContent = "Kayıt yok.";
-      return;
-    }
-    el.innerHTML = data.map(rowHtml).join("");
-  }catch(e){ el.textContent = "❌ Hata: " + e.message; }
+    if (!Array.isArray(data) || data.length === 0) { msg(el, "Kayıt yok."); return; }
+    el.innerHTML = data.map(row => `
+      <div class="card">
+        <div><b>ID:</b> ${row.id}</div>
+        <div><b>Start:</b> ${row.start_at}</div>
+        <div><b>End:</b> ${row.end_at}</div>
+        <div><b>Minutes:</b> ${row.minutes}</div>
+        <div><b>Note:</b> ${row.note || ''}</div>
+        <button onclick="del('${row.id}')">Sil</button>
+      </div>`).join('');
+  } catch (e) { msg(el, '❌ Hata: ' + e.message); }
 }
 
-async function delRow(id){
+async function del(id) {
   const userId = $("userId").value.trim();
-  const token  = $("token").value.trim();
-  if(!token){ alert("Silmek için Token gerekli."); return; }
-  try{
-    const r = await fetch(`${base()}/api/sessions/${id}?userId=${encodeURIComponent(userId)}`, {
-      method: "DELETE",
-      headers: { "X-Api-Token": token }
+  const token  = getToken();
+  try {
+    const r = await fetch(`${base}/api/sessions/${id}?userId=${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      headers: { 'X-Api-Token': token }
     });
-    if(r.status === 204){ list(); weekly(); }
-    else { alert("Silme hatası: " + await r.text()); }
-  }catch(e){ alert("İstek hatası: " + e.message); }
+    if (r.status === 204) { alert('Silindi'); list(); weekly(); }
+    else { const t = await r.text(); alert('Silme hatası: ' + t); }
+  } catch (e) { alert('İstek hatası: ' + e.message); }
 }
 
-async function weekly(){
+async function weekly() {
   const userId = $("userId").value.trim();
   const box = $("weeklyBox");
-  box.textContent = "Yükleniyor...";
-  try{
-    const r = await fetch(`${base()}/api/weekly?userId=${encodeURIComponent(userId)}`);
+  msg(box, "Yükleniyor...");
+  try {
+    const r = await fetch(`${base}/api/weekly?userId=${encodeURIComponent(userId)}`);
     const d = await r.json();
-    box.textContent = `Gün: ${d.days} | Ortalama (dk): ${d.avgMinutes} | Skor: ${d.sleepScore}`;
-  }catch(e){ box.textContent = "❌ Hata: " + e.message; }
+    box.textContent = `Gün: ${d.days} | Ortalama (dk): ${d.avgMinutes} | Score: ${d.sleepScore}`;
+  } catch (e) { msg(box, '❌ Hata: ' + e.message); }
 }
 
-function saveSettings(){
-  LS.set("sc:base", $("baseUrl").value.trim());
-  LS.set("sc:token", $("token").value.trim());
-  LS.set("sc:tz", $("tz").value);
-  uiMsg("createMsg", "💾 Ayarlar kaydedildi.");
-  showEnv();
-}
-
-function loadSettings(){
-  const b = LS.get("sc:base", "");
-  const t = LS.get("sc:token", "");
-  const tz = LS.get("sc:tz", "180");
-  $("baseUrl").value = b;
-  $("token").value   = t;
-  $("tz").value      = tz;
-  // varsayılan: bugün için öğe doldur
-  const now = new Date();
-  const pad = n => String(n).padStart(2,"0");
-  const loc = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  $("startLocal").value = loc(now);
-  $("endLocal").value   = loc(new Date(now.getTime()+7*60*60*1000)); // +7 saat
-  showEnv();
-}
-
-$("btnCreate").onclick = create;
-$("btnList").onclick   = list;
-$("btnWeekly").onclick = weekly;
-$("btnSave").onclick   = saveSettings;
-$("btnClear").onclick  = () => { $("note").value=""; };
-
-loadSettings();
+// ilk yüklemede liste/özet
 list(); weekly();
 </script>
 </body>

@@ -1,6 +1,7 @@
 {
   "routes": [
-    { "src": "/robots.txt", "dest": "/public/robots.txt" },
-    { "src": "/", "dest": "/api/home" }
+    { "src": "^/robots.txt$", "dest": "/public/robots.txt" },
+    { "src": "^/$", "dest": "/api/home" },
+    { "src": "^/index.html$", "dest": "/api/home" }
   ]
 }

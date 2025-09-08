@@ -1,0 +1,219 @@
+﻿<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sleep Coach — Mini UI</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 32px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; }
+    .muted { color: #666; margin: 0 0 24px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 6px; }
+    button { padding: 10px 14px; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .right { text-align: right; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+    .hint { font-size: 12px; color: #888; margin-top: 4px; }
+    .pill { display:inline-block;padding:2px 8px;border:1px solid #e3e3e3;border-radius:16px;font-size:12px;color:#666 }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>😴 Sleep Coach</h1>
+  <p class="muted">Kayıt ekle, listele/sil; sağda haftalık özet. <span class="pill" id="tz-pill"></span></p>
+
+  <div class="card">
+    <h3>Kayıt Ekle</h3>
+
+    <div class="row">
+      <div><label>User ID <input id="userId" value="canim" /></label></div>
+
+      <div><label>Tarih (Başlangıç) <input id="dateStart" type="date" /></label></div>
+      <div><label>Saat (Başlangıç) <input id="timeStart" type="time" /></label></div>
+
+      <div><label>Tarih (Bitiş) <input id="dateEnd" type="date" /></label></div>
+      <div><label>Saat (Bitiş) <input id="timeEnd" type="time" /></label></div>
+
+      <div>
+        <label>Saat Dilimi (Şehir)
+          <select id="tz">
+            <!-- Yaygın TZ + şehir örnekleri -->
+            <option value="Europe/Istanbul">Europe/Istanbul (TR)</option>
+            <option value="Europe/Berlin">Europe/Berlin (DE)</option>
+            <option value="Europe/London">Europe/London (UK)</option>
+            <option value="Asia/Dubai">Asia/Dubai (AE)</option>
+            <option value="Asia/Kolkata">Asia/Kolkata (IN)</option>
+            <option value="Asia/Tokyo">Asia/Tokyo (JP)</option>
+            <option value="America/New_York">America/New_York (US-ET)</option>
+            <option value="America/Chicago">America/Chicago (US-CT)</option>
+            <option value="America/Denver">America/Denver (US-MT)</option>
+            <option value="America/Los_Angeles">America/Los_Angeles (US-PT)</option>
+          </select>
+        </label>
+        <div class="hint">Girilen yerel saat, otomatik UTC’ye çevrilip kaydedilecek.</div>
+      </div>
+    </div>
+
+    <label>Not <textarea id="note" rows="2" placeholder="ör: “prod UI deneme”"></textarea></label>
+
+    <div class="row">
+      <div>
+        <label>API Token
+          <input id="token" placeholder="X-Api-Token (yalnızca ekleme/silme için)">
+        </label>
+        <div class="hint">Tarayıcıda güvenli değil; sadece kendi cihazında uygula. Token sunucuda doğrulanır.</div>
+      </div>
+      <div class="right"><button id="btnSaveToken" type="button">Token’ı Kaydet</button></div>
+      <div class="right"><button onclick="create()">Ekle</button></div>
+      <div class="right"><button onclick="list()">Listeyi Yenile</button></div>
+      <div class="right"><button onclick="weekly()">Haftalık Yenile</button></div>
+    </div>
+
+    <div id="createMsg" class="muted"></div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>Liste</h3>
+      <div id="list"></div>
+    </div>
+
+    <div class="card">
+      <h3>Haftalık Özet</h3>
+      <div id="weeklyBox" class="muted">—</div>
+    </div>
+  </div>
+
+  <p class="muted">API test: <code>/api/ping</code></p>
+</div>
+
+<script>
+const base = location.origin;
+const $ = (id) => document.getElementById(id);
+
+// ----- Token (localStorage) -----
+const TOKEN_KEY = "sleepcoach_token";
+function loadToken() {
+  const t = localStorage.getItem(TOKEN_KEY) || "";
+  $("token").value = t;
+}
+$("btnSaveToken").addEventListener("click", () => {
+  localStorage.setItem(TOKEN_KEY, $("token").value.trim());
+  alert("Token kaydedildi (localStorage).");
+});
+loadToken();
+
+// ----- Saat Dilimi pill -----
+function setTzPill() {
+  const tz = $("tz").value;
+  $("tz-pill").textContent = `TZ: ${tz}`;
+}
+$("tz").addEventListener("change", setTzPill);
+setTzPill();
+
+// ----- Yerel tarih-saat → UTC ISO (TZ’li) -----
+function toUtcIso(dateStr, timeStr, tz) {
+  // dateStr: "2025-09-01", timeStr: "23:30"
+  if (!dateStr || !timeStr) return null;
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  const [h, m] = timeStr.split(":").map(Number);
+
+  // TZ aware: Intl API ile offset tespiti
+  const dt = new Date(Date.UTC(Y, M-1, D, h, m, 0)); // UTC taban
+  // dt’yi hedef TZ’ye “gibi” düşünerek offset düzeltmesi yapalım:
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  // TZ’deki “aynı duygusal anı” yakalamak için:
+  const parts = fmt.formatToParts(dt);
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  // TZ’de görünen anı tekrar Date’e çevir
+  const tzLike = new Date(`${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}:${map.second}Z`);
+  // Şimdi bu görünümü UTC’ye yeniden projekte et
+  // dönüş: ISO (UTC)
+  return tzLike.toISOString();
+}
+
+// ----- UI Helpers -----
+function msg(el, text) { el.textContent = text; }
+function getToken() { return $("token").value.trim(); }
+
+// ----- Actions -----
+async function create() {
+  const userId = $("userId").value.trim();
+  const startISO = toUtcIso($("dateStart").value, $("timeStart").value, $("tz").value);
+  const endISO   = toUtcIso($("dateEnd").value, $("timeEnd").value, $("tz").value);
+  const note     = $("note").value.trim();
+  const token    = getToken();
+  const box      = $("createMsg");
+
+  if (!userId || !startISO || !endISO) {
+    msg(box, "❌ userId / tarih-saat eksik");
+    return;
+  }
+  msg(box, "Gönderiliyor...");
+
+  try {
+    const r = await fetch(`${base}/api/sessions`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json','X-Api-Token': token},
+      body: JSON.stringify({ userId, start: startISO, end: endISO, note })
+    });
+    const t = await r.text();
+    msg(box, r.ok ? '✔️ Eklendi: ' + t : '❌ Hata: ' + t);
+    if (r.ok) { list(); weekly(); }
+  } catch (e) { msg(box, '❌ İstek hatası: ' + e.message); }
+}
+
+async function list() {
+  const userId = $("userId").value.trim();
+  const el = $("list");
+  msg(el, "Yükleniyor...");
+  try {
+    const r = await fetch(`${base}/api/sessions?userId=${encodeURIComponent(userId)}`);
+    const data = await r.json();
+    if (!Array.isArray(data) || data.length === 0) { msg(el, "Kayıt yok."); return; }
+    el.innerHTML = data.map(row => `
+      <div class="card">
+        <div><b>ID:</b> ${row.id}</div>
+        <div><b>Start:</b> ${row.start_at}</div>
+        <div><b>End:</b> ${row.end_at}</div>
+        <div><b>Minutes:</b> ${row.minutes}</div>
+        <div><b>Note:</b> ${row.note || ''}</div>
+        <button onclick="del('${row.id}')">Sil</button>
+      </div>`).join('');
+  } catch (e) { msg(el, '❌ Hata: ' + e.message); }
+}
+
+async function del(id) {
+  const userId = $("userId").value.trim();
+  const token  = getToken();
+  try {
+    const r = await fetch(`${base}/api/sessions/${id}?userId=${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      headers: { 'X-Api-Token': token }
+    });
+    if (r.status === 204) { alert('Silindi'); list(); weekly(); }
+    else { const t = await r.text(); alert('Silme hatası: ' + t); }
+  } catch (e) { alert('İstek hatası: ' + e.message); }
+}
+
+async function weekly() {
+  const userId = $("userId").value.trim();
+  const box = $("weeklyBox");
+  msg(box, "Yükleniyor...");
+  try {
+    const r = await fetch(`${base}/api/weekly?userId=${encodeURIComponent(userId)}`);
+    const d = await r.json();
+    box.textContent = `Gün: ${d.days} | Ortalama (dk): ${d.avgMinutes} | Score: ${d.sleepScore}`;
+  } catch (e) { msg(box, '❌ Hata: ' + e.message); }
+}
+
+// ilk yüklemede liste/özet
+list(); weekly();
+</script>
+</body>
+</html>

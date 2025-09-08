@@ -11,7 +11,7 @@
     .wrap { max-width: 760px; margin: 0 auto; }
     h1 { margin: 0 0 8px; }
     .muted { color: #666; margin: 0 0 24px; }
-    textarea, input { width: 100%; padding: 10px; margin-top: 6px; }
+    textarea, input, select { width: 100%; padding: 10px; margin-top: 6px; }
     button { padding: 10px 14px; cursor: pointer; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row > div { flex: 1 1 240px; }
